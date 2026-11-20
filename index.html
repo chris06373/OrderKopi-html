@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KopiKasir — Sistem POS Kopi Modern</title>
+  <title>KopiKasir POS — Pengembangan Lengkap</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @media print {
@@ -37,25 +37,41 @@
         </div>
         <div>
           <h1 class="font-bold text-lg leading-tight">KopiKasir POS</h1>
-          <p class="text-xs text-amber-200/80">Pemesanan • Invoice • Buka/Tutup Kasir</p>
+          <p id="header-pic" class="text-xs text-amber-200/80">PJ Kasir: Belum Ditentukan</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 text-xs sm:text-sm">
-        <span id="shift-badge" class="px-3 py-1 rounded-full bg-amber-900 text-amber-200 border border-amber-700">
+      <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+        <span id="shift-badge" class="px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60">
           Kasir: Belum Buka Shift
         </span>
         <button onclick="switchTab('pos')" id="tab-pos" class="px-3.5 py-1.5 rounded-lg bg-amber-500 text-amber-950 font-semibold">
           Kasir & Pesanan
         </button>
+        <button onclick="switchTab('history')" id="tab-history" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
+          Histori Pemesanan
+        </button>
         <button onclick="switchTab('shift')" id="tab-shift" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
           Buka / Tutup Kasir
+        </button>
+        <button onclick="resetAll()" class="px-3.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold">
+          Reset All
         </button>
       </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto p-4">
+    <!-- Banner Peringatan Jika Kasir Belum Dibuka -->
+    <div id="locked-banner" class="mb-4 p-4 rounded-2xl bg-amber-100 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-3 no-print">
+      <div class="text-xs sm:text-sm">
+        <strong>Pemesanan Terkunci:</strong> Produk hanya bisa dipesan setelah kasir dibuka, penanggung jawab kasir diinput, dan modal awal diisi.
+      </div>
+      <button onclick="switchTab('shift')" class="px-3.5 py-1.5 rounded-xl bg-amber-900 text-white text-xs font-semibold hover:bg-amber-800">
+        Buka Kasir Sekarang
+      </button>
+    </div>
+
     <!-- TAB 1: PEMESANAN & PEMBAYARAN -->
     <section id="view-pos" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <!-- Katalog Menu Kopi -->
@@ -65,7 +81,7 @@
             <h2 class="font-bold text-base">Menu Kopi & Minuman</h2>
             <p class="text-xs text-stone-500">Pilih menu untuk menambah ke pesanan aktif</p>
           </div>
-          <div class="flex gap-1.5" id="category-filters">
+          <div class="flex flex-wrap gap-1.5" id="category-filters">
             <button onclick="filterCategory('Semua')" data-cat="Semua" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-amber-900 text-white">Semua</button>
             <button onclick="filterCategory('Espresso')" data-cat="Espresso" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">Espresso</button>
             <button onclick="filterCategory('Susu & Kopi')" data-cat="Susu & Kopi" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">Susu & Kopi</button>
@@ -119,7 +135,7 @@
             </button>
           </div>
 
-          <div id="table-input-wrap" class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs text-stone-500 mb-1">Nomor Meja</label>
               <input id="table-number" type="text" placeholder="Contoh: M-04" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-amber-700" />
@@ -196,7 +212,44 @@
       </div>
     </section>
 
-    <!-- TAB 2: LAPORAN BUKA & TUTUP KASIR -->
+    <!-- TAB 2: HISTORI PEMESANAN -->
+    <section id="view-history" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="font-bold text-base">Histori Pemesanan</h2>
+            <p class="text-xs text-stone-500">Daftar seluruh pesanan yang telah dibayar beserta penanggung jawab kasir</p>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-stone-100 text-stone-700 font-medium">
+            Total Pesanan: <strong id="history-count">0</strong>
+          </span>
+        </div>
+
+        <div class="overflow-x-auto border border-stone-200 rounded-xl">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-stone-50 text-stone-500 border-b border-stone-200">
+              <tr>
+                <th class="py-2.5 px-3">No. Invoice</th>
+                <th class="py-2.5 px-3">Waktu</th>
+                <th class="py-2.5 px-3">PJ Kasir</th>
+                <th class="py-2.5 px-3">Layanan & Pelanggan</th>
+                <th class="py-2.5 px-3">Item Pesanan</th>
+                <th class="py-2.5 px-3">Metode</th>
+                <th class="py-2.5 px-3 text-right">Total</th>
+                <th class="py-2.5 px-3 text-center">Invoice</th>
+              </tr>
+            </thead>
+            <tbody id="order-history-body" class="divide-y divide-stone-100">
+              <tr>
+                <td colspan="8" class="py-6 text-center text-stone-400">Belum ada histori pemesanan.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: LAPORAN BUKA & TUTUP KASIR -->
     <section id="view-shift" class="hidden space-y-5">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <!-- Form Buka & Tutup Kasir -->
@@ -205,17 +258,17 @@
 
           <!-- Buka Kasir -->
           <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
-            <div class="font-semibold text-sm text-amber-950">1. Buka Kasir (Modal Awal)</div>
+            <div class="font-semibold text-sm text-amber-950">1. Buka Kasir & Penanggung Jawab</div>
             <div>
-              <label class="block text-xs text-stone-600 mb-1">Nama Kasir</label>
-              <input id="cashier-name" type="text" placeholder="Contoh: Rina" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 bg-white" />
+              <label class="block text-xs text-stone-600 mb-1">Penanggung Jawab Kasir (Wajib)</label>
+              <input id="cashier-name" type="text" placeholder="Contoh: Rina Wijaya" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 bg-white" />
             </div>
             <div>
-              <label class="block text-xs text-stone-600 mb-1">Modal Kas Awal (Rp)</label>
-              <input id="opening-cash" type="number" placeholder="500000" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 bg-white" />
+              <label class="block text-xs text-stone-600 mb-1">Modal Kas Awal (Rp, Wajib)</label>
+              <input id="opening-cash" type="number" min="1" placeholder="500000" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 bg-white" />
             </div>
             <button onclick="openShift()" class="w-full py-2.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold">
-              Buka Kasir Sekarang
+              Buka Kasir & Aktifkan Pemesanan
             </button>
           </div>
 
@@ -231,7 +284,7 @@
               <input id="shift-note" type="text" placeholder="Opsional, misal: shift pagi lancar" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 bg-white" />
             </div>
             <button onclick="closeShift()" class="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold">
-              Tutup Kasir & Simpan Laporan
+              Tutup Kasir & Kunci Pemesanan
             </button>
           </div>
           <p id="shift-feedback" class="text-xs text-amber-900 font-medium"></p>
@@ -242,7 +295,7 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 class="font-bold text-base">Laporan Keuangan Kasir</h2>
-              <p id="shift-meta" class="text-xs text-stone-500">Status: Belum dibuka</p>
+              <p id="shift-meta" class="text-xs text-stone-500">PJ Kasir: - • Status: Belum dibuka</p>
             </div>
             <span class="text-xs px-3 py-1 rounded-full bg-stone-100 text-stone-700 font-medium">
               Transaksi: <strong id="report-tx-count">0</strong>
@@ -285,7 +338,7 @@
           </div>
 
           <div>
-            <h3 class="font-semibold text-sm mb-2">Riwayat Transaksi Shift Ini</h3>
+            <h3 class="font-semibold text-sm mb-2">Ringkasan Transaksi Shift Ini</h3>
             <div class="overflow-x-auto border border-stone-200 rounded-xl">
               <table class="w-full text-xs text-left">
                 <thead class="bg-stone-50 text-stone-500 border-b border-stone-200">
@@ -319,34 +372,42 @@
       { id: 6, name: "Matcha Latte", category: "Non-Kopi", price: 27000, desc: "Teh hijau matcha pilihan dengan susu" }
     ];
 
-    const state = {
-      category: "Semua",
-      orderType: "Dine-In",
-      paymentMethod: "Tunai",
-      cart: [],
-      shift: {
-        isOpen: false,
-        cashier: "-",
-        openingCash: 0,
-        openedAt: null,
-        closedAt: null,
-        transactions: []
-      },
-      lastInvoice: null
-    };
+    function createInitialState() {
+      return {
+        category: "Semua",
+        orderType: "Dine-In",
+        paymentMethod: "Tunai",
+        cart: [],
+        shift: {
+          isOpen: false,
+          cashier: "",
+          openingCash: 0,
+          openedAt: null,
+          closedAt: null,
+          transactions: []
+        },
+        lastInvoice: null
+      };
+    }
+
+    let state = createInitialState();
 
     const formatIDR = (num) => "Rp" + Number(num || 0).toLocaleString("id-ID");
 
+    function canOrder() {
+      return Boolean(state.shift.isOpen && state.shift.cashier.trim() && Number(state.shift.openingCash) > 0);
+    }
+
     function switchTab(tab) {
-      document.getElementById("view-pos").classList.toggle("hidden", tab !== "pos");
-      document.getElementById("view-shift").classList.toggle("hidden", tab !== "shift");
-      document.getElementById("tab-pos").className = tab === "pos"
-        ? "px-3.5 py-1.5 rounded-lg bg-amber-500 text-amber-950 font-semibold"
-        : "px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100";
-      document.getElementById("tab-shift").className = tab === "shift"
-        ? "px-3.5 py-1.5 rounded-lg bg-amber-500 text-amber-950 font-semibold"
-        : "px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100";
+      ["pos", "history", "shift"].forEach((name) => {
+        document.getElementById(`view-${name}`).classList.toggle("hidden", tab !== name);
+        const btn = document.getElementById(`tab-${name}`);
+        btn.className = tab === name
+          ? "px-3.5 py-1.5 rounded-lg bg-amber-500 text-amber-950 font-semibold"
+          : "px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100";
+      });
       if (tab === "shift") renderShiftReport();
+      if (tab === "history") renderOrderHistory();
     }
 
     function filterCategory(cat) {
@@ -360,11 +421,32 @@
       renderMenu();
     }
 
+    function renderLockStatus() {
+      const allowed = canOrder();
+      document.getElementById("locked-banner").classList.toggle("hidden", allowed);
+      document.getElementById("header-pic").textContent = state.shift.cashier
+        ? `PJ Kasir: ${state.shift.cashier}`
+        : "PJ Kasir: Belum Ditentukan";
+
+      const badge = document.getElementById("shift-badge");
+      if (allowed) {
+        badge.textContent = `Shift Aktif • ${state.shift.cashier}`;
+        badge.className = "px-3 py-1 rounded-full bg-emerald-900/90 text-emerald-100 border border-emerald-600/60";
+      } else if (state.shift.closedAt) {
+        badge.textContent = "Kasir: Sudah Tutup Shift";
+        badge.className = "px-3 py-1 rounded-full bg-stone-800 text-stone-200 border border-stone-600";
+      } else {
+        badge.textContent = "Kasir: Belum Buka Shift";
+        badge.className = "px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60";
+      }
+    }
+
     function renderMenu() {
+      const allowed = canOrder();
       const grid = document.getElementById("menu-grid");
       const items = state.category === "Semua" ? MENU : MENU.filter((m) => m.category === state.category);
       grid.innerHTML = items.map((item) => `
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-col justify-between gap-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-col justify-between gap-3 ${allowed ? "" : "opacity-65"}">
           <div>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-medium">${item.category}</span>
             <h3 class="font-bold text-sm mt-2">${item.name}</h3>
@@ -372,8 +454,11 @@
           </div>
           <div class="flex items-center justify-between pt-2 border-t border-stone-100">
             <span class="font-bold text-sm text-amber-950">${formatIDR(item.price)}</span>
-            <button onclick="addToCart(${item.id})" class="px-3 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold">
-              + Tambah
+            <button
+              onclick="addToCart(${item.id})"
+              ${allowed ? "" : "disabled"}
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold ${allowed ? "bg-amber-900 hover:bg-amber-800 text-white" : "bg-stone-200 text-stone-400 cursor-not-allowed"}">
+              ${allowed ? "+ Tambah" : "Terkunci"}
             </button>
           </div>
         </div>
@@ -394,6 +479,13 @@
     }
 
     function addToCart(id) {
+      const feedback = document.getElementById("pos-feedback");
+      if (!canOrder()) {
+        feedback.className = "text-xs text-center text-red-600 min-h-[16px]";
+        feedback.textContent = "Buka kasir, isi penanggung jawab, dan modal awal terlebih dahulu.";
+        return;
+      }
+      feedback.textContent = "";
       const product = MENU.find((m) => m.id === id);
       const existing = state.cart.find((c) => c.id === id);
       if (existing) {
@@ -474,7 +566,13 @@
 
     function processPayment() {
       const feedback = document.getElementById("pos-feedback");
+      feedback.className = "text-xs text-center text-red-600 min-h-[16px]";
       feedback.textContent = "";
+
+      if (!canOrder()) {
+        feedback.textContent = "Kasir belum dibuka atau modal awal belum diisi.";
+        return;
+      }
 
       if (state.cart.length === 0) {
         feedback.textContent = "Pilih minimal satu menu kopi terlebih dahulu.";
@@ -508,6 +606,7 @@
         invNumber,
         time: now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
         date: now.toLocaleDateString("id-ID"),
+        cashier: state.shift.cashier,
         orderType: state.orderType,
         tableNumber: state.orderType === "Dine-In" ? tableNum : "-",
         customerName: custName,
@@ -530,11 +629,18 @@
       document.getElementById("customer-name").value = "";
       calculateChange();
       renderShiftReport();
+      renderOrderHistory();
       feedback.className = "text-xs text-center text-emerald-700 font-medium min-h-[16px]";
       feedback.textContent = `Pembayaran ${invNumber} berhasil diproses.`;
     }
 
     function renderInvoice(tx) {
+      if (!tx) {
+        document.getElementById("invoice-content").innerHTML =
+          `<p class="text-stone-400 italic">Invoice akan muncul setelah transaksi pembayaran berhasil.</p>`;
+        return;
+      }
+
       const serviceLabel = tx.orderType === "Dine-In"
         ? `Minum di Tempat (Meja ${tx.tableNumber})`
         : "Take Away";
@@ -545,8 +651,11 @@
           <span>${tx.date} • ${tx.time}</span>
         </div>
         <div class="flex justify-between">
-          <span>Layanan: <strong>${serviceLabel}</strong></span>
+          <span>PJ Kasir: <strong>${tx.cashier}</strong></span>
           <span>Pelanggan: <strong>${tx.customerName}</strong></span>
+        </div>
+        <div>
+          <span>Layanan: <strong>${serviceLabel}</strong></span>
         </div>
         <div class="border-t border-dashed border-stone-300 pt-2 mt-2 space-y-1.5">
           ${tx.items.map((item) => `
@@ -573,16 +682,28 @@
     }
 
     function openShift() {
-      const cashier = document.getElementById("cashier-name").value.trim() || "Kasir Utama";
+      const feedback = document.getElementById("shift-feedback");
+      const cashier = document.getElementById("cashier-name").value.trim();
       const opening = Number(document.getElementById("opening-cash").value || 0);
+
+      if (!cashier) {
+        feedback.textContent = "Penanggung jawab kasir wajib diisi sebelum membuka kasir.";
+        return;
+      }
+      if (opening <= 0) {
+        feedback.textContent = "Modal kas awal wajib lebih dari Rp0 sebelum membuka kasir.";
+        return;
+      }
+
       state.shift.isOpen = true;
       state.shift.cashier = cashier;
       state.shift.openingCash = opening;
       state.shift.openedAt = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
       state.shift.closedAt = null;
 
-      document.getElementById("shift-badge").textContent = `Shift Aktif: ${cashier}`;
-      document.getElementById("shift-feedback").textContent = `Kasir dibuka oleh ${cashier} dengan modal ${formatIDR(opening)}.`;
+      feedback.textContent = `Kasir dibuka oleh ${cashier} dengan modal awal ${formatIDR(opening)}. Pemesanan aktif.`;
+      renderLockStatus();
+      renderMenu();
       renderShiftReport();
     }
 
@@ -590,8 +711,10 @@
       const actualCash = Number(document.getElementById("actual-cash").value || 0);
       state.shift.isOpen = false;
       state.shift.closedAt = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-      document.getElementById("shift-badge").textContent = "Kasir: Sudah Tutup Shift";
-      document.getElementById("shift-feedback").textContent = `Shift ditutup pukul ${state.shift.closedAt}. Kas fisik tercatat ${formatIDR(actualCash)}.`;
+      document.getElementById("shift-feedback").textContent =
+        `Shift ditutup pukul ${state.shift.closedAt}. Kas fisik tercatat ${formatIDR(actualCash)}. Pemesanan dikunci.`;
+      renderLockStatus();
+      renderMenu();
       renderShiftReport();
     }
 
@@ -606,7 +729,7 @@
       const diff = actualCashInput !== "" ? Number(actualCashInput) - expectedCash : 0;
 
       document.getElementById("shift-meta").textContent =
-        `Kasir: ${state.shift.cashier} • Buka: ${state.shift.openedAt || "-"} • Tutup: ${state.shift.closedAt || "Belum tutup"}`;
+        `PJ Kasir: ${state.shift.cashier || "-"} • Buka: ${state.shift.openedAt || "-"} • Tutup: ${state.shift.closedAt || "Belum tutup"}`;
       document.getElementById("report-tx-count").textContent = txs.length;
       document.getElementById("rep-opening").textContent = formatIDR(state.shift.openingCash);
       document.getElementById("rep-gross").textContent = formatIDR(grossSales);
@@ -634,9 +757,79 @@
       }
     }
 
+    function renderOrderHistory() {
+      const txs = state.shift.transactions;
+      document.getElementById("history-count").textContent = txs.length;
+      const body = document.getElementById("order-history-body");
+
+      if (txs.length === 0) {
+        body.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-stone-400">Belum ada histori pemesanan.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = txs.map((t, idx) => {
+        const itemsText = t.items.map((i) => `${i.qty}x ${i.name}`).join(", ");
+        const serviceText = t.orderType === "Dine-In"
+          ? `Minum di Tempat (Meja ${t.tableNumber}) • ${t.customerName}`
+          : `Take Away • ${t.customerName}`;
+
+        return `
+          <tr>
+            <td class="py-2.5 px-3 font-semibold">${t.invNumber}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">${t.date} ${t.time}</td>
+            <td class="py-2.5 px-3 font-medium text-amber-950">${t.cashier}</td>
+            <td class="py-2.5 px-3">${serviceText}</td>
+            <td class="py-2.5 px-3">${itemsText}</td>
+            <td class="py-2.5 px-3">${t.paymentMethod}</td>
+            <td class="py-2.5 px-3 text-right font-bold">${formatIDR(t.total)}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="openInvoiceFromHistory(${idx})" class="px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[11px]">
+                Lihat
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openInvoiceFromHistory(index) {
+      const tx = state.shift.transactions[index];
+      if (!tx) return;
+      state.lastInvoice = tx;
+      renderInvoice(tx);
+      switchTab("pos");
+    }
+
+    function resetAll() {
+      const ok = confirm("Reset semua data kasir, modal awal, penanggung jawab, keranjang, invoice, dan histori pemesanan?");
+      if (!ok) return;
+
+      state = createInitialState();
+      ["cashier-name", "opening-cash", "actual-cash", "shift-note", "table-number", "customer-name", "cash-received"]
+        .forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        });
+      document.getElementById("pos-feedback").textContent = "";
+      document.getElementById("shift-feedback").textContent = "Seluruh data telah direset. Silakan buka kasir kembali.";
+
+      setOrderType("Dine-In");
+      setPaymentMethod("Tunai");
+      filterCategory("Semua");
+      renderLockStatus();
+      renderMenu();
+      renderCart();
+      renderInvoice(null);
+      renderShiftReport();
+      renderOrderHistory();
+      switchTab("pos");
+    }
+
+    renderLockStatus();
     renderMenu();
     renderCart();
     renderShiftReport();
+    renderOrderHistory();
   </script>
 </body>
 </html>
