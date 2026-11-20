@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KopiKasir POS - Histori Pemesanan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 text-stone-800 antialiased">
+  <header class="bg-amber-950 text-amber-50 sticky top-0 z-20 shadow">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-500 text-amber-950 font-bold flex items-center justify-center">
+          KK
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">KopiKasir POS</h1>
+          <p id="header-pic" class="text-xs text-amber-200/80">PJ Kasir: Belum Ditentukan</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+        <span id="shift-badge" class="px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60">
+          Kasir: Belum Buka Shift
+        </span>
+        <a href="index.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
+          Beranda
+        </a>
+        <a href="pos.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
+          Kasir & Pesanan
+        </a>
+        <a href="history.html" class="px-3.5 py-1.5 rounded-lg bg-amber-500 text-amber-950 font-semibold">
+          Histori Pemesanan
+        </a>
+        <a href="shift.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
+          Buka / Tutup & Rekap Kasir
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-4 space-y-5">
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-bold text-base">Histori Pemesanan (Shift Aktif)</h2>
+          <p class="text-xs text-stone-500">Menampilkan 3 pesanan per halaman • Cari transaksi atau gunakan tombol First & Last</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="highlightBoundary('first')" class="px-3 py-1.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold">
+            First
+          </button>
+          <button onclick="highlightBoundary('last')" class="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-semibold">
+            Last
+          </button>
+          <span class="text-xs px-3 py-1.5 rounded-full bg-stone-100 text-stone-700 font-medium">
+            Total Data: <strong id="history-count">0</strong>
+          </span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          id="history-search"
+          type="text"
+          oninput="onHistorySearchInput()"
+          placeholder="Cari no. invoice, PJ kasir, meja/pelanggan, item kopi, atau metode..."
+          class="flex-1 min-w-[240px] px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-amber-700"
+        />
+        <button onclick="clearHistorySearch()" class="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold">
+          Reset Cari
+        </button>
+      </div>
+
+      <p id="history-boundary-info" class="text-xs text-amber-900 font-medium min-h-[16px]"></p>
+
+      <div class="overflow-x-auto border border-stone-200 rounded-xl">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-stone-50 text-stone-500 border-b border-stone-200">
+            <tr>
+              <th class="py-2.5 px-3">No.</th>
+              <th class="py-2.5 px-3">No. Invoice</th>
+              <th class="py-2.5 px-3">Waktu</th>
+              <th class="py-2.5 px-3">PJ Kasir</th>
+              <th class="py-2.5 px-3">Layanan & Pelanggan</th>
+              <th class="py-2.5 px-3">Item Pesanan</th>
+              <th class="py-2.5 px-3">Metode</th>
+              <th class="py-2.5 px-3 text-right">Total</th>
+              <th class="py-2.5 px-3 text-center">Invoice</th>
+            </tr>
+          </thead>
+          <tbody id="order-history-body" class="divide-y divide-stone-100">
+            <tr><td colspan="9" class="py-6 text-center text-stone-400">Belum ada histori pemesanan.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="order-pagination" class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs"></div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="font-bold text-base">Laporan Barang yang Laku (Shift Aktif)</h2>
+          <p class="text-xs text-stone-500">Menampilkan 3 barang per halaman berdasarkan jumlah terjual</p>
+        </div>
+        <span class="text-xs px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-semibold">
+          Total Item Terjual: <strong id="sold-items-total-qty">0</strong>
+        </span>
+      </div>
+
+      <div class="overflow-x-auto border border-stone-200 rounded-xl">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-stone-50 text-stone-500 border-b border-stone-200">
+            <tr>
+              <th class="py-2.5 px-3">Nama Barang</th>
+              <th class="py-2.5 px-3">Kategori</th>
+              <th class="py-2.5 px-3 text-right">Harga Satuan</th>
+              <th class="py-2.5 px-3 text-right">Terjual (Qty)</th>
+              <th class="py-2.5 px-3 text-right">Total Penjualan</th>
+            </tr>
+          </thead>
+          <tbody id="sold-items-body" class="divide-y divide-stone-100">
+            <tr><td colspan="5" class="py-6 text-center text-stone-400">Belum ada barang yang laku pada shift ini.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="sold-pagination" class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs"></div>
+    </div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "kopikasir_pos_v4";
+    const PAGE_SIZE = 3;
+    let highlightedBoundary = null;
+    let orderPage = 1;
+    let soldPage = 1;
+
+    function createInitialState() {
+      return {
+        category: "Semua", orderType: "Dine-In", paymentMethod: "Tunai", cart: [], shiftCounter: 0,
+        shift: { shiftCode: null, isOpen: false, cashier: "", openingCash: 0, openedAt: null, closedAt: null, actualCash: null, note: "", transactions: [] },
+        shiftHistory: [], lastInvoice: null
+      };
+    }
+
+    let state = (() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? { ...createInitialState(), ...JSON.parse(raw) } : createInitialState();
+      } catch {
+        return createInitialState();
+      }
+    })();
+
+    const formatIDR = (num) => "Rp" + Number(num || 0).toLocaleString("id-ID");
+    const saveState = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    function renderHeaderBadge() {
+      document.getElementById("header-pic").textContent = state.shift.cashier ? `PJ Kasir: ${state.shift.cashier}` : "PJ Kasir: Belum Ditentukan";
+      const badge = document.getElementById("shift-badge");
+      if (state.shift.isOpen) {
+        badge.textContent = `Shift Aktif • ${state.shift.cashier}`;
+        badge.className = "px-3 py-1 rounded-full bg-emerald-900/90 text-emerald-100 border border-emerald-600/60";
+      } else if (state.shift.closedAt) {
+        badge.textContent = "Kasir: Sudah Tutup Shift";
+        badge.className = "px-3 py-1 rounded-full bg-stone-800 text-stone-200 border border-stone-600";
+      } else {
+        badge.textContent = "Kasir: Belum Buka Shift";
+        badge.className = "px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60";
+      }
+    }
+
+    function buildPaginationHTML(currentPage, totalPages, fnName) {
+      if (totalPages <= 1) return `<span class="text-stone-400">Halaman 1 dari 1 (maks. 3 data/halaman)</span><div></div>`;
+      const pages = [];
+      for (let p = 1; p <= totalPages; p++) {
+        pages.push(`<button onclick="${fnName}(${p})" class="px-2.5 py-1 rounded-lg font-semibold ${p === currentPage ? "bg-amber-900 text-white" : "bg-stone-100 hover:bg-stone-200 text-stone-700"}">${p}</button>`);
+      }
+      return `
+        <span class="text-stone-500">Halaman <strong>${currentPage}</strong> dari <strong>${totalPages}</strong> (3 data/halaman)</span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="${fnName}(${Math.max(1, currentPage - 1)})" ${currentPage === 1 ? "disabled" : ""} class="px-2.5 py-1 rounded-lg border border-stone-300 font-semibold ${currentPage === 1 ? "text-stone-300 cursor-not-allowed" : "bg-white hover:bg-stone-50 text-stone-700"}">Prev</button>
+          ${pages.join("")}
+          <button onclick="${fnName}(${Math.min(totalPages, currentPage + 1)})" ${currentPage === totalPages ? "disabled" : ""} class="px-2.5 py-1 rounded-lg border border-stone-300 font-semibold ${currentPage === totalPages ? "text-stone-300 cursor-not-allowed" : "bg-white hover:bg-stone-50 text-stone-700"}">Next</button>
+        </div>
+      `;
+    }
+
+    function setOrderPage(p) { orderPage = p; renderOrderHistory(); }
+    function setSoldPage(p) { soldPage = p; renderSoldItems(); }
+
+    function getSoldItemsReport(transactions = []) {
+      const map = new Map();
+      transactions.forEach((tx) => {
+        (tx.items || []).forEach((item) => {
+          const existing = map.get(item.id) || { id: item.id, name: item.name, category: item.category || "-", price: Number(item.price || 0), qty: 0, revenue: 0 };
+          existing.qty += Number(item.qty || 0);
+          existing.revenue += Number(item.price || 0) * Number(item.qty || 0);
+          map.set(item.id, existing);
+        });
+      });
+      return Array.from(map.values()).sort((a, b) => b.qty - a.qty);
+    }
+
+    function getFilteredOrderHistory() {
+      const query = (document.getElementById("history-search")?.value || "").trim().toLowerCase();
+      const allTxs = state.shift.transactions || [];
+      if (!query) return allTxs.map((tx, originalIndex) => ({ tx, originalIndex }));
+      return allTxs
+        .map((tx, originalIndex) => ({ tx, originalIndex }))
+        .filter(({ tx }) => {
+          const itemsStr = tx.items.map((i) => `${i.qty}x ${i.name}`).join(" ").toLowerCase();
+          return [tx.invNumber, tx.cashier, tx.customerName, tx.tableNumber, tx.orderType, tx.paymentMethod, `${tx.date} ${tx.time}`, itemsStr].join(" ").toLowerCase().includes(query);
+        });
+    }
+
+    function onHistorySearchInput() {
+      orderPage = 1;
+      highlightedBoundary = null;
+      document.getElementById("history-boundary-info").textContent = "";
+      renderOrderHistory();
+    }
+
+    function highlightBoundary(type) {
+      highlightedBoundary = type;
+      const filtered = getFilteredOrderHistory();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      const info = document.getElementById("history-boundary-info");
+      if (!filtered.length) { info.textContent = "Tidak ada data pada hasil pencarian saat ini."; renderOrderHistory(); return; }
+      orderPage = type === "first" ? 1 : totalPages;
+      renderOrderHistory();
+      const target = type === "first" ? filtered[0].tx : filtered[filtered.length - 1].tx;
+      info.textContent = `Menyorot ${type === "first" ? "FIRST (Pesanan Pertama)" : "LAST (Pesanan Terakhir)"}: ${target.invNumber} • ${target.time} • ${formatIDR(target.total)} (Halaman ${orderPage})`;
+    }
+
+    function clearHistorySearch() {
+      document.getElementById("history-search").value = "";
+      highlightedBoundary = null;
+      orderPage = 1;
+      document.getElementById("history-boundary-info").textContent = "";
+      renderOrderHistory();
+    }
+
+    function renderOrderHistory() {
+      const filtered = getFilteredOrderHistory();
+      document.getElementById("history-count").textContent = filtered.length;
+      const body = document.getElementById("order-history-body");
+      const pager = document.getElementById("order-pagination");
+      if (!filtered.length) {
+        body.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-stone-400">Belum ada histori pemesanan yang cocok.</td></tr>`;
+        pager.innerHTML = buildPaginationHTML(1, 1, "setOrderPage");
+        return;
+      }
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      orderPage = Math.min(Math.max(1, orderPage), totalPages);
+      const startIdx = (orderPage - 1) * PAGE_SIZE;
+      body.innerHTML = filtered.slice(startIdx, startIdx + PAGE_SIZE).map(({ tx: t, originalIndex }, localIdx) => {
+        const globalIdx = startIdx + localIdx;
+        const isHighlighted = (highlightedBoundary === "first" && globalIdx === 0) || (highlightedBoundary === "last" && globalIdx === filtered.length - 1);
+        const itemsText = t.items.map((i) => `${i.qty}x ${i.name}`).join(", ");
+        const serviceText = t.orderType === "Dine-In" ? `Minum di Tempat (Meja ${t.tableNumber}) • ${t.customerName}` : `Take Away • ${t.customerName}`;
+        return `
+          <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
+            <td class="py-2.5 px-3 font-semibold text-stone-600 whitespace-nowrap">${globalIdx + 1}</td>
+            <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">${t.date} ${t.time}</td>
+            <td class="py-2.5 px-3 font-medium text-amber-950 whitespace-nowrap">${t.cashier}</td>
+            <td class="py-2.5 px-3">${serviceText}</td>
+            <td class="py-2.5 px-3">${itemsText}</td>
+            <td class="py-2.5 px-3">${t.paymentMethod}</td>
+            <td class="py-2.5 px-3 text-right font-bold whitespace-nowrap">${formatIDR(t.total)}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="openInvoiceFromHistory(${originalIndex})" class="px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[11px]">Lihat</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+      pager.innerHTML = buildPaginationHTML(orderPage, totalPages, "setOrderPage");
+    }
+
+    function renderSoldItems() {
+      const sold = getSoldItemsReport(state.shift.transactions);
+      document.getElementById("sold-items-total-qty").textContent = sold.reduce((s, item) => s + item.qty, 0);
+      const body = document.getElementById("sold-items-body");
+      const pager = document.getElementById("sold-pagination");
+      if (!sold.length) {
+        body.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-stone-400">Belum ada barang yang laku pada shift ini.</td></tr>`;
+        pager.innerHTML = buildPaginationHTML(1, 1, "setSoldPage");
+        return;
+      }
+      const totalPages = Math.max(1, Math.ceil(sold.length / PAGE_SIZE));
+      soldPage = Math.min(Math.max(1, soldPage), totalPages);
+      const startIdx = (soldPage - 1) * PAGE_SIZE;
+      body.innerHTML = sold.slice(startIdx, startIdx + PAGE_SIZE).map((item) => `
+        <tr>
+          <td class="py-2.5 px-3 font-semibold text-stone-800">${item.name}</td>
+          <td class="py-2.5 px-3">${item.category}</td>
+          <td class="py-2.5 px-3 text-right">${formatIDR(item.price)}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-amber-950">${item.qty}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-emerald-800">${formatIDR(item.revenue)}</td>
+        </tr>
+      `).join("");
+      pager.innerHTML = buildPaginationHTML(soldPage, totalPages, "setSoldPage");
+    }
+
+    function openInvoiceFromHistory(index) {
+      const tx = state.shift.transactions[index];
+      if (!tx) return;
+      state.lastInvoice = tx;
+      saveState();
+      window.location.href = "pos.html";
+    }
+
+    renderHeaderBadge();
+    renderOrderHistory();
+    renderSoldItems();
+  </script>
+</body>
+</html>
