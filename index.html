@@ -221,7 +221,7 @@
           <table class="w-full text-xs text-left">
             <thead class="bg-stone-50 text-stone-500 border-b border-stone-200">
               <tr>
-                <th class="py-2.5 px-3">Posisi</th>
+                <th class="py-2.5 px-3">No.</th>
                 <th class="py-2.5 px-3">No. Invoice</th>
                 <th class="py-2.5 px-3">Waktu</th>
                 <th class="py-2.5 px-3">PJ Kasir</th>
@@ -1206,7 +1206,11 @@
 
         return `
           <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
-            <td class="py-2.5 px-3 whitespace-nowrap">${posBadge}</td>
+           const rowNumber = globalIdx + 1;
+        return `
+        <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
+        <td class="py-2.5 px-3 font-semibold text-stone-600 whitespace-nowrap">${rowNumber}</td>
+        <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
             <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
             <td class="py-2.5 px-3 whitespace-nowrap">${t.date} ${t.time}</td>
             <td class="py-2.5 px-3 font-medium text-amber-950 whitespace-nowrap">${t.cashier}</td>
