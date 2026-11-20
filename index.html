@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KopiKasir POS — Rekap Shift, Barang Laku & Histori</title>
+  <title>Kopi - Poin of Sale - CJ Tech</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Library Export Excel (.xlsx) & PDF (.pdf) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -186,7 +186,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="font-bold text-base">Histori Pemesanan (Shift Aktif)</h2>
-            <p class="text-xs text-stone-500">Cari transaksi, lalu gunakan tombol First atau Last untuk menyorot pesanan pertama/terakhir</p>
+            <p class="text-xs text-stone-500">Menampilkan 3 pesanan per halaman • Cari transaksi atau gunakan tombol First & Last</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button onclick="highlightBoundary('first')" class="px-3 py-1.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold">
@@ -196,7 +196,7 @@
               Last
             </button>
             <span class="text-xs px-3 py-1.5 rounded-full bg-stone-100 text-stone-700 font-medium">
-              Tampil: <strong id="history-count">0</strong>
+              Total Data: <strong id="history-count">0</strong>
             </span>
           </div>
         </div>
@@ -206,7 +206,7 @@
           <input
             id="history-search"
             type="text"
-            oninput="renderOrderHistory()"
+            oninput="onHistorySearchInput()"
             placeholder="Cari no. invoice, PJ kasir, meja/pelanggan, item kopi, atau metode..."
             class="flex-1 min-w-[240px] px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-amber-700"
           />
@@ -239,14 +239,17 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Histori Pemesanan (1 - seterusnya, 3 data/halaman) -->
+        <div id="order-pagination" class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs"></div>
       </div>
 
-      <!-- Laporan Barang yang Laku (Shift Aktif) -->
+      <!-- Laporan Barang yang Laku (Shift Aktif, 3 data/halaman) -->
       <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 class="font-bold text-base">Laporan Barang yang Laku (Shift Aktif)</h2>
-            <p class="text-xs text-stone-500">Rekap jumlah porsi/item terjual dan total nilai penjualan per barang</p>
+            <p class="text-xs text-stone-500">Menampilkan 3 barang per halaman berdasarkan jumlah terjual</p>
           </div>
           <span class="text-xs px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-semibold">
             Total Item Terjual: <strong id="sold-items-total-qty">0</strong>
@@ -271,6 +274,9 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Barang Laku (1 - seterusnya, 3 data/halaman) -->
+        <div id="sold-pagination" class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs"></div>
       </div>
     </section>
 
@@ -281,7 +287,6 @@
         <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
           <h2 class="font-bold text-base">Kontrol Shift Kasir</h2>
 
-          <!-- Info Shift Sedang Berjalan -->
           <div id="active-shift-card" class="p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
             <div class="font-semibold text-stone-800">Status Shift Saat Ini</div>
             <div id="active-shift-detail" class="text-stone-600">Belum ada shift aktif.</div>
@@ -369,7 +374,6 @@
             </div>
           </div>
 
-          <!-- Ringkasan Barang Laku di Shift Aktif -->
           <div class="border border-stone-200 rounded-xl p-4 space-y-2 text-xs">
             <div class="font-semibold text-sm text-stone-800">Barang Laku (Shift Aktif)</div>
             <div id="shift-sold-summary" class="text-stone-600">Belum ada barang terjual.</div>
@@ -444,7 +448,8 @@
   </main>
 
   <script>
-    const STORAGE_KEY = "kopikasir_pos_v3";
+    const STORAGE_KEY = "kopikasir_pos_v4";
+    const PAGE_SIZE = 3;
 
     const MENU = [
       { id: 1, name: "Kopi Susu Gula Aren", category: "Susu & Kopi", price: 24000, desc: "Espresso, susu segar, gula aren asli" },
@@ -455,7 +460,9 @@
       { id: 6, name: "Matcha Latte", category: "Non-Kopi", price: 27000, desc: "Teh hijau matcha pilihan dengan susu" }
     ];
 
-    let highlightedBoundary = null; // 'first' | 'last' | null
+    let highlightedBoundary = null;
+    let orderPage = 1;
+    let soldPage = 1;
 
     function formatDateTime(dateObj = new Date()) {
       const tgl = dateObj.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -503,6 +510,53 @@
     }
 
     const formatIDR = (num) => "Rp" + Number(num || 0).toLocaleString("id-ID");
+
+    function buildPaginationHTML(currentPage, totalPages, onPageChangeFnName) {
+      if (totalPages <= 1) {
+        return `<span class="text-stone-400">Halaman 1 dari 1 (maks. 3 data/halaman)</span><div></div>`;
+      }
+
+      const pages = [];
+      for (let p = 1; p <= totalPages; p++) {
+        const active = p === currentPage;
+        pages.push(`
+          <button
+            onclick="${onPageChangeFnName}(${p})"
+            class="px-2.5 py-1 rounded-lg font-semibold ${active ? "bg-amber-900 text-white" : "bg-stone-100 hover:bg-stone-200 text-stone-700"}">
+            ${p}
+          </button>
+        `);
+      }
+
+      return `
+        <span class="text-stone-500">Halaman <strong>${currentPage}</strong> dari <strong>${totalPages}</strong> (3 data/halaman)</span>
+        <div class="flex items-center gap-1.5">
+          <button
+            onclick="${onPageChangeFnName}(${Math.max(1, currentPage - 1)})"
+            ${currentPage === 1 ? "disabled" : ""}
+            class="px-2.5 py-1 rounded-lg border border-stone-300 font-semibold ${currentPage === 1 ? "text-stone-300 cursor-not-allowed" : "bg-white hover:bg-stone-50 text-stone-700"}">
+            Prev
+          </button>
+          ${pages.join("")}
+          <button
+            onclick="${onPageChangeFnName}(${Math.min(totalPages, currentPage + 1)})"
+            ${currentPage === totalPages ? "disabled" : ""}
+            class="px-2.5 py-1 rounded-lg border border-stone-300 font-semibold ${currentPage === totalPages ? "text-stone-300 cursor-not-allowed" : "bg-white hover:bg-stone-50 text-stone-700"}">
+            Next
+          </button>
+        </div>
+      `;
+    }
+
+    function setOrderPage(p) {
+      orderPage = p;
+      renderOrderHistory();
+    }
+
+    function setSoldPage(p) {
+      soldPage = p;
+      renderSoldItems();
+    }
 
     function getSoldItemsReport(transactions = []) {
       const map = new Map();
@@ -792,7 +846,6 @@
         change: Math.max(0, received - total)
       };
 
-      // Disimpan berurutan kronologis (transaksi pertama di indeks 0, terakhir di akhir)
       state.shift.transactions.push(tx);
       state.lastInvoice = tx;
       highlightedBoundary = null;
@@ -926,8 +979,9 @@
       };
       state.cart = [];
       highlightedBoundary = null;
+      orderPage = 1;
+      soldPage = 1;
 
-      // Kosongkan kolom Penanggung Jawab & Modal Awal setelah kasir dibuka
       cashierInput.value = "";
       openingInput.value = "";
       document.getElementById("actual-cash").value = "";
@@ -1074,30 +1128,38 @@
         });
     }
 
+    function onHistorySearchInput() {
+      orderPage = 1;
+      highlightedBoundary = null;
+      document.getElementById("history-boundary-info").textContent = "";
+      renderOrderHistory();
+    }
+
     function highlightBoundary(type) {
       highlightedBoundary = type;
-      renderOrderHistory();
-
       const filtered = getFilteredOrderHistory();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
       const info = document.getElementById("history-boundary-info");
+
       if (!filtered.length) {
         info.textContent = "Tidak ada data pada hasil pencarian saat ini.";
+        renderOrderHistory();
         return;
       }
 
+      orderPage = type === "first" ? 1 : totalPages;
+      renderOrderHistory();
+
       const target = type === "first" ? filtered[0].tx : filtered[filtered.length - 1].tx;
       const label = type === "first" ? "FIRST (Pesanan Pertama)" : "LAST (Pesanan Terakhir)";
-      info.textContent = `Menyorot ${label}: ${target.invNumber} • ${target.time} • ${formatIDR(target.total)}`;
-
-      const rowId = type === "first" ? "hist-row-first" : "hist-row-last";
-      const el = document.getElementById(rowId);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      info.textContent = `Menyorot ${label}: ${target.invNumber} • ${target.time} • ${formatIDR(target.total)} (Halaman ${orderPage})`;
     }
 
     function clearHistorySearch() {
       const input = document.getElementById("history-search");
       if (input) input.value = "";
       highlightedBoundary = null;
+      orderPage = 1;
       document.getElementById("history-boundary-info").textContent = "";
       renderOrderHistory();
     }
@@ -1106,27 +1168,36 @@
       const filtered = getFilteredOrderHistory();
       document.getElementById("history-count").textContent = filtered.length;
       const body = document.getElementById("order-history-body");
+      const pager = document.getElementById("order-pagination");
 
       if (filtered.length === 0) {
         body.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-stone-400">Belum ada histori pemesanan yang cocok.</td></tr>`;
+        pager.innerHTML = buildPaginationHTML(1, 1, "setOrderPage");
         return;
       }
 
-      body.innerHTML = filtered.map(({ tx: t, originalIndex }, idx) => {
-        const isFirst = idx === 0;
-        const isLast = idx === filtered.length - 1;
-        const isHighlighted =
-          (highlightedBoundary === "first" && isFirst) ||
-          (highlightedBoundary === "last" && isLast);
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (orderPage > totalPages) orderPage = totalPages;
+      if (orderPage < 1) orderPage = 1;
 
-        const rowId = isFirst ? "hist-row-first" : (isLast ? "hist-row-last" : "");
-        const posBadge = isFirst && isLast
+      const startIdx = (orderPage - 1) * PAGE_SIZE;
+      const pageRows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+      body.innerHTML = pageRows.map(({ tx: t, originalIndex }, localIdx) => {
+        const globalIdx = startIdx + localIdx;
+        const isFirstOverall = globalIdx === 0;
+        const isLastOverall = globalIdx === filtered.length - 1;
+        const isHighlighted =
+          (highlightedBoundary === "first" && isFirstOverall) ||
+          (highlightedBoundary === "last" && isLastOverall);
+
+        const posBadge = isFirstOverall && isLastOverall
           ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">First & Last</span>`
-          : isFirst
+          : isFirstOverall
             ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">First</span>`
-            : isLast
+            : isLastOverall
               ? `<span class="px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-semibold">Last</span>`
-              : `<span class="text-stone-400">#${idx + 1}</span>`;
+              : `<span class="text-stone-400">#${globalIdx + 1}</span>`;
 
         const itemsText = t.items.map((i) => `${i.qty}x ${i.name}`).join(", ");
         const serviceText = t.orderType === "Dine-In"
@@ -1134,7 +1205,7 @@
           : `Take Away • ${t.customerName}`;
 
         return `
-          <tr id="${rowId}" class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
+          <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
             <td class="py-2.5 px-3 whitespace-nowrap">${posBadge}</td>
             <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
             <td class="py-2.5 px-3 whitespace-nowrap">${t.date} ${t.time}</td>
@@ -1151,6 +1222,8 @@
           </tr>
         `;
       }).join("");
+
+      pager.innerHTML = buildPaginationHTML(orderPage, totalPages, "setOrderPage");
     }
 
     function renderSoldItems() {
@@ -1159,12 +1232,22 @@
       document.getElementById("sold-items-total-qty").textContent = totalQty;
 
       const body = document.getElementById("sold-items-body");
+      const pager = document.getElementById("sold-pagination");
+
       if (!sold.length) {
         body.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-stone-400">Belum ada barang yang laku pada shift ini.</td></tr>`;
+        pager.innerHTML = buildPaginationHTML(1, 1, "setSoldPage");
         return;
       }
 
-      body.innerHTML = sold.map((item) => `
+      const totalPages = Math.max(1, Math.ceil(sold.length / PAGE_SIZE));
+      if (soldPage > totalPages) soldPage = totalPages;
+      if (soldPage < 1) soldPage = 1;
+
+      const startIdx = (soldPage - 1) * PAGE_SIZE;
+      const pageItems = sold.slice(startIdx, startIdx + PAGE_SIZE);
+
+      body.innerHTML = pageItems.map((item) => `
         <tr>
           <td class="py-2.5 px-3 font-semibold text-stone-800">${item.name}</td>
           <td class="py-2.5 px-3">${item.category}</td>
@@ -1173,6 +1256,8 @@
           <td class="py-2.5 px-3 text-right font-bold text-emerald-800">${formatIDR(item.revenue)}</td>
         </tr>
       `).join("");
+
+      pager.innerHTML = buildPaginationHTML(soldPage, totalPages, "setSoldPage");
     }
 
     function openInvoiceFromHistory(index) {
@@ -1345,6 +1430,8 @@
       localStorage.removeItem(STORAGE_KEY);
       state = createInitialState();
       highlightedBoundary = null;
+      orderPage = 1;
+      soldPage = 1;
 
       ["cashier-name", "opening-cash", "actual-cash", "shift-note", "table-number", "customer-name", "cash-received", "history-search"]
         .forEach((id) => {
