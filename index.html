@@ -1185,19 +1185,12 @@
 
       body.innerHTML = pageRows.map(({ tx: t, originalIndex }, localIdx) => {
         const globalIdx = startIdx + localIdx;
+        const rowNumber = globalIdx + 1;
         const isFirstOverall = globalIdx === 0;
         const isLastOverall = globalIdx === filtered.length - 1;
         const isHighlighted =
           (highlightedBoundary === "first" && isFirstOverall) ||
           (highlightedBoundary === "last" && isLastOverall);
-
-        const posBadge = isFirstOverall && isLastOverall
-          ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">First & Last</span>`
-          : isFirstOverall
-            ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">First</span>`
-            : isLastOverall
-              ? `<span class="px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-semibold">Last</span>`
-              : `<span class="text-stone-400">#${globalIdx + 1}</span>`;
 
         const itemsText = t.items.map((i) => `${i.qty}x ${i.name}`).join(", ");
         const serviceText = t.orderType === "Dine-In"
@@ -1206,11 +1199,7 @@
 
         return `
           <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
-           const rowNumber = globalIdx + 1;
-        return `
-        <tr class="${isHighlighted ? "bg-amber-50 ring-1 ring-inset ring-amber-400" : ""}">
-        <td class="py-2.5 px-3 font-semibold text-stone-600 whitespace-nowrap">${rowNumber}</td>
-        <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
+            <td class="py-2.5 px-3 font-semibold text-stone-600 whitespace-nowrap">${rowNumber}</td>
             <td class="py-2.5 px-3 font-semibold whitespace-nowrap">${t.invNumber}</td>
             <td class="py-2.5 px-3 whitespace-nowrap">${t.date} ${t.time}</td>
             <td class="py-2.5 px-3 font-medium text-amber-950 whitespace-nowrap">${t.cashier}</td>
