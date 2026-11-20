@@ -3,527 +3,631 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kopi - POS - CJ Tech</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>CS Toko - Layanan Pelanggan</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    @media print {
-      body * { visibility: hidden; }
-      #invoice-area, #invoice-area * { visibility: visible; }
-      #invoice-area {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        padding: 16px;
-        background: #ffffff;
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: #f1f5f9; color: #0f172a; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Topbar & Notifikasi */
+    .topbar {
+      background: #0f172a; color: #fff; padding: 10px 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .badge-notif {
+      background: #ef4444; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .btn-top {
+      background: #1e293b; color: #fff; border: 1px solid #475569;
+      padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-top:hover { background: #334155; }
+    .btn-reset-all {
+      background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444;
+      padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-reset-all:hover { background: #991b1b; color: #fff; }
+    .btn-mobile-drawer { display: none; }
+
+    .toast-banner {
+      background: #fef3c7; color: #92400e; border-bottom: 1px solid #fcd34d;
+      padding: 8px 16px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+
+    /* Layout Utama */
+    .app-container {
+      flex: 1; display: grid; grid-template-columns: 340px 1fr; min-height: 0; position: relative;
+    }
+
+    /* Sidebar Histori & Pencarian */
+    .sidebar {
+      background: #fff; border-right: 1px solid #e2e8f0;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .sidebar-header { padding: 12px; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
+    .btn-new {
+      background: #2563eb; color: #fff; border: none; padding: 9px 12px;
+      border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;
+    }
+    .btn-new:hover { background: #1d4ed8; }
+    .search-input {
+      width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;
+    }
+    .history-list { flex: 1; overflow-y: auto; }
+    .history-item {
+      padding: 12px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .history-item:hover { background: #f8fafc; }
+    .history-item.active { background: #eff6ff; border-left: 4px solid #2563eb; }
+    .item-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; gap: 6px; }
+    .status-pill {
+      font-size: 11px; padding: 2px 7px; border-radius: 999px; font-weight: 600; flex-shrink: 0;
+    }
+    .status-active { background: #dcfce7; color: #166534; }
+    .status-ended { background: #e2e8f0; color: #475569; }
+    .item-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-meta { font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; }
+
+    /* Area Chat */
+    .chat-panel { display: flex; flex-direction: column; min-height: 0; background: #f8fafc; width: 100%; }
+    .chat-header {
+      background: #fff; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .chat-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .timer-box {
+      font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+      background: #f1f5f9; color: #334155;
+    }
+    .timer-box.warning { background: #fee2e2; color: #991b1b; }
+    .btn-end {
+      background: #ef4444; color: #fff; border: none; padding: 6px 10px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-sim {
+      background: #0ea5e9; color: #fff; border: none; padding: 6px 10px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+
+    .messages-box {
+      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg { max-width: 78%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+    .msg-customer { align-self: flex-start; background: #fff; border: 1px solid #e2e8f0; }
+    .msg-agent { align-self: flex-end; background: #2563eb; color: #fff; }
+    .msg-system {
+      align-self: center; background: #e2e8f0; color: #475569; font-size: 12px;
+      padding: 6px 12px; border-radius: 999px; text-align: center;
+    }
+    .msg-time { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
+
+    .chat-input-area {
+      background: #fff; padding: 10px 12px; border-top: 1px solid #e2e8f0;
+      display: flex; gap: 8px;
+    }
+    .chat-input {
+      flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; min-width: 0;
+    }
+    .chat-input:disabled { background: #f1f5f9; cursor: not-allowed; }
+    .btn-send {
+      background: #16a34a; color: #fff; border: none; padding: 0 16px;
+      border-radius: 8px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    .btn-send:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* Mode Mobile Drawer */
+    .drawer-backdrop { display: none; }
+
+    @media (max-width: 768px) {
+      .btn-mobile-drawer {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #2563eb; color: #fff; border: none;
+        padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
       }
-      .no-print { display: none !important; }
+      .app-container { grid-template-columns: 1fr; }
+      .sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0; width: 84vw; max-width: 320px;
+        z-index: 30; transform: translateX(-100%); transition: transform 0.2s ease;
+        box-shadow: 4px 0 20px rgba(15, 23, 42, 0.2);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .drawer-backdrop.open {
+        display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 20;
+      }
+      .msg { max-width: 88%; }
     }
   </style>
 </head>
-<body class="bg-stone-100 text-stone-800 antialiased">
-  <!-- BAGIAN 1: NAVIGASI GLOBAL & STATUS GUARD SHIFT -->
-  <header class="bg-amber-950 text-amber-50 sticky top-0 z-20 shadow no-print">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-amber-500 text-amber-950 font-bold flex items-center justify-center">
-          KK
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">KopiKasir POS</h1>
-          <p id="header-pic" class="text-xs text-amber-200/80">PJ Kasir: Belum Ditentukan</p>
-        </div>
-      </div>
+<body>
+  <div id="root"></div>
 
-      <nav class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-        <span id="shift-badge" class="px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60">
-          Kasir: Belum Buka Shift
-        </span>
-        <a href="pos.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
-          Kasir & Pesanan
-        </a>
-        <a href="history.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
-          Histori Pemesanan
-        </a>
-        <a href="shift.html" class="px-3.5 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-amber-100">
-          Buka / Tutup & Rekap Kasir
-        </a>
-        <button onclick="resetAll()" class="px-3.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold">
-          Reset All
-        </button>
-      </nav>
-    </div>
-  </header>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
 
-  <main class="max-w-7xl mx-auto p-4 space-y-5">
-    <!-- Banner Kunci Kasir -->
-    <div id="locked-banner" class="p-4 rounded-2xl bg-amber-100 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-3 no-print">
-      <div class="text-xs sm:text-sm">
-        <strong>Pemesanan Terkunci:</strong> Produk hanya bisa dipesan setelah kasir dibuka, penanggung jawab kasir diinput, dan modal awal diisi.
-      </div>
-      <a href="shift.html" class="px-3.5 py-1.5 rounded-xl bg-amber-900 text-white text-xs font-semibold hover:bg-amber-800">
-        Buka Kasir Sekarang
-      </a>
-    </div>
+    const IDLE_LIMIT_SECONDS = 180; // 3 menit = 180 detik
+    const STORAGE_KEY = "cs_toko_sessions_v2";
 
-    <!-- Area Kasir, Keranjang & Invoice di Halaman Awal -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <div class="lg:col-span-7 space-y-4 no-print">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="font-bold text-base">Menu Kopi & Minuman</h2>
-            <p class="text-xs text-stone-500">Pilih menu untuk menambah ke pesanan aktif</p>
-          </div>
-          <div class="flex flex-wrap gap-1.5" id="category-filters">
-            <button onclick="filterCategory('Semua')" data-cat="Semua" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-amber-900 text-white">Semua</button>
-            <button onclick="filterCategory('Espresso')" data-cat="Espresso" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">Espresso</button>
-            <button onclick="filterCategory('Susu & Kopi')" data-cat="Susu & Kopi" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">Susu & Kopi</button>
-            <button onclick="filterCategory('Non-Kopi')" data-cat="Non-Kopi" class="cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">Non-Kopi</button>
-          </div>
-        </div>
-
-        <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-      </div>
-
-      <div class="lg:col-span-5 space-y-4">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-4 no-print">
-          <div class="flex items-center justify-between">
-            <h2 class="font-bold text-base">Pesanan Aktif</h2>
-            <button onclick="clearCart()" class="text-xs text-red-600 hover:underline">Kosongkan</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 bg-stone-100 p-1 rounded-xl">
-            <button onclick="setOrderType('Dine-In')" id="btn-dinein" class="py-2 rounded-lg text-xs font-semibold bg-white text-stone-900 shadow-sm">
-              Minum di Tempat
-            </button>
-            <button onclick="setOrderType('Take Away')" id="btn-takeaway" class="py-2 rounded-lg text-xs font-semibold text-stone-600">
-              Take Away
-            </button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs text-stone-500 mb-1">Nomor Meja</label>
-              <input id="table-number" type="text" placeholder="Contoh: M-04" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-amber-700" />
-            </div>
-            <div>
-              <label class="block text-xs text-stone-500 mb-1">Nama Pelanggan</label>
-              <input id="customer-name" type="text" placeholder="Opsional" class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:border-amber-700" />
-            </div>
-          </div>
-
-          <div id="cart-items" class="divide-y divide-stone-100 max-h-60 overflow-y-auto border-y border-stone-100 py-1">
-            <p class="text-xs text-stone-400 py-6 text-center">Belum ada item dipilih.</p>
-          </div>
-
-          <div class="space-y-1.5 text-sm">
-            <div class="flex justify-between text-stone-600">
-              <span>Subtotal</span>
-              <span id="summary-subtotal">Rp0</span>
-            </div>
-            <div class="flex justify-between text-stone-600">
-              <span>Pajak Restoran (10%)</span>
-              <span id="summary-tax">Rp0</span>
-            </div>
-            <div class="flex justify-between font-bold text-base text-stone-900 pt-2 border-t border-stone-200">
-              <span>Total Bayar</span>
-              <span id="summary-total">Rp0</span>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="block text-xs font-medium text-stone-700">Metode Pembayaran</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button onclick="setPaymentMethod('Tunai')" data-pay="Tunai" class="pay-btn py-2 rounded-xl text-xs font-semibold border border-amber-800 bg-amber-900 text-white">Tunai</button>
-              <button onclick="setPaymentMethod('QRIS')" data-pay="QRIS" class="pay-btn py-2 rounded-xl text-xs font-semibold border border-stone-300 bg-white text-stone-700">QRIS</button>
-              <button onclick="setPaymentMethod('Kartu')" data-pay="Kartu" class="pay-btn py-2 rounded-xl text-xs font-semibold border border-stone-300 bg-white text-stone-700">Kartu</button>
-            </div>
-          </div>
-
-          <div id="cash-payment-box" class="space-y-2 bg-stone-50 p-3 rounded-xl border border-stone-200">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-xs text-stone-600">Uang Diterima</label>
-              <input id="cash-received" type="number" oninput="calculateChange()" placeholder="0" class="w-40 px-3 py-1.5 text-sm text-right rounded-lg border border-stone-300 bg-white" />
-            </div>
-            <div class="flex items-center justify-between text-xs font-semibold">
-              <span class="text-stone-600">Kembalian</span>
-              <span id="cash-change" class="text-emerald-700">Rp0</span>
-            </div>
-          </div>
-
-          <button onclick="processPayment()" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow transition">
-            Bayar & Buat Invoice
-          </button>
-          <p id="pos-feedback" class="text-xs text-center text-red-600 min-h-[16px]"></p>
-        </div>
-
-        <div id="invoice-area" class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200">
-          <div class="flex items-start justify-between border-b border-dashed border-stone-300 pb-3 mb-3">
-            <div>
-              <h3 class="font-bold text-base text-stone-900">INVOICE PEMBAYARAN</h3>
-              <p class="text-xs text-stone-500">KopiKasir Roastery & Cafe</p>
-            </div>
-            <button onclick="window.print()" class="no-print px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium">
-              Cetak Invoice
-            </button>
-          </div>
-          <div id="invoice-content" class="text-xs text-stone-600 space-y-2">
-            <p class="text-stone-400 italic">Invoice akan muncul setelah transaksi pembayaran berhasil.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const STORAGE_KEY = "kopikasir_pos_v4";
-    const MENU = [
-      { id: 1, name: "Kopi Susu Gula Aren", category: "Susu & Kopi", price: 24000, desc: "Espresso, susu segar, gula aren asli" },
-      { id: 2, name: "Americano Panas / Es", category: "Espresso", price: 20000, desc: "Double shot espresso dengan air murni" },
-      { id: 3, name: "Cappuccino Klasik", category: "Susu & Kopi", price: 26000, desc: "Espresso seimbang dengan mikrofoam lembut" },
-      { id: 4, name: "Caramel Latte", category: "Susu & Kopi", price: 28000, desc: "Latte creamy dengan sirup karamel" },
-      { id: 5, name: "Single Origin V60", category: "Espresso", price: 30000, desc: "Seduhan manual dengan profil rasa floral & fruity" },
-      { id: 6, name: "Matcha Latte", category: "Non-Kopi", price: 27000, desc: "Teh hijau matcha pilihan dengan susu" }
+    const INITIAL_SESSIONS = [
+      {
+        id: "CS-1001",
+        customerName: "Rina Wijaya",
+        status: "active",
+        lastActivityAt: Date.now() - 25 * 1000,
+        unreadCount: 1,
+        messages: [
+          { id: "m1", sender: "customer", text: "Halo min, pesanan baju ukuran L saya apakah sudah dikirim?", time: "15:40" },
+          { id: "m2", sender: "agent", text: "Halo Kak Rina, sebentar ya saya cek nomor resinya.", time: "15:41" },
+          { id: "m3", sender: "customer", text: "Baik min, ditunggu kabarnya ya.", time: "15:42" }
+        ]
+      },
+      {
+        id: "CS-1002",
+        customerName: "Budi Santoso",
+        status: "ended",
+        lastActivityAt: Date.now() - 3600 * 1000,
+        unreadCount: 0,
+        messages: [
+          { id: "m4", sender: "customer", text: "Apakah bisa tukar size sepatu kalau kekecilan?", time: "14:10" },
+          { id: "m5", sender: "agent", text: "Bisa Kak, maksimal 3 hari setelah barang diterima dengan kondisi tag masih ada.", time: "14:12" },
+          { id: "m6", sender: "system", text: "Percakapan berakhir karena tidak ada aktivitas selama 3 menit.", time: "14:15" }
+        ]
+      }
     ];
 
-    function createInitialState() {
-      return {
-        category: "Semua",
-        orderType: "Dine-In",
-        paymentMethod: "Tunai",
-        cart: [],
-        shiftCounter: 0,
-        shift: {
-          shiftCode: null,
-          isOpen: false,
-          cashier: "",
-          openingCash: 0,
-          openedAt: null,
-          closedAt: null,
-          actualCash: null,
-          note: "",
-          transactions: []
-        },
-        shiftHistory: [],
-        lastInvoice: null
-      };
+    function formatTimeNow() {
+      return new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
     }
 
-    function loadState() {
+    function formatCountdown(sec) {
+      const safe = Math.max(0, sec);
+      const m = Math.floor(safe / 60);
+      const s = safe % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function playNotifSound() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return createInitialState();
-        return { ...createInitialState(), ...JSON.parse(raw) };
-      } catch {
-        return createInitialState();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } catch (_) {}
+    }
+
+    function loadInitialSessions() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
       }
+      return INITIAL_SESSIONS;
     }
 
-    let state = loadState();
-    const formatIDR = (num) => "Rp" + Number(num || 0).toLocaleString("id-ID");
-
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      renderQuickSummary();
-    }
-
-    function canOrder() {
-      return Boolean(state.shift.isOpen && state.shift.cashier.trim() && Number(state.shift.openingCash) > 0);
-    }
-
-    function renderQuickSummary() {
-      const txs = state.shift.transactions || [];
-      const gross = txs.reduce((s, t) => s + Number(t.total || 0), 0);
-      document.getElementById("quick-shift-status").textContent = canOrder()
-        ? `${state.shift.shiftCode} • ${state.shift.cashier}`
-        : "Belum Buka Shift";
-      document.getElementById("quick-tx-count").textContent = `${txs.length} Pesanan`;
-      document.getElementById("quick-gross").textContent = formatIDR(gross);
-      document.getElementById("quick-history-count").textContent = `${(state.shiftHistory || []).length} Shift`;
-    }
-
-    function renderLockStatus() {
-      const allowed = canOrder();
-      document.getElementById("locked-banner").classList.toggle("hidden", allowed);
-      document.getElementById("header-pic").textContent = state.shift.cashier
-        ? `PJ Kasir: ${state.shift.cashier}`
-        : "PJ Kasir: Belum Ditentukan";
-
-      const badge = document.getElementById("shift-badge");
-      if (allowed) {
-        badge.textContent = `Shift Aktif • ${state.shift.cashier}`;
-        badge.className = "px-3 py-1 rounded-full bg-emerald-900/90 text-emerald-100 border border-emerald-600/60";
-      } else if (state.shift.closedAt) {
-        badge.textContent = "Kasir: Sudah Tutup Shift";
-        badge.className = "px-3 py-1 rounded-full bg-stone-800 text-stone-200 border border-stone-600";
-      } else {
-        badge.textContent = "Kasir: Belum Buka Shift";
-        badge.className = "px-3 py-1 rounded-full bg-red-950/80 text-red-200 border border-red-700/60";
-      }
-      renderQuickSummary();
-    }
-
-    function filterCategory(cat) {
-      state.category = cat;
-      document.querySelectorAll(".cat-btn").forEach((btn) => {
-        const active = btn.dataset.cat === cat;
-        btn.className = active
-          ? "cat-btn px-3 py-1 rounded-full text-xs font-medium bg-amber-900 text-white"
-          : "cat-btn px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200";
+    function App() {
+      const [sessions, setSessions] = useState(loadInitialSessions);
+      const [activeId, setActiveId] = useState(() => {
+        const list = loadInitialSessions();
+        return list[0]?.id || null;
       });
-      renderMenu();
-      saveState();
-    }
 
-    function renderMenu() {
-      const allowed = canOrder();
-      const grid = document.getElementById("menu-grid");
-      const items = state.category === "Semua" ? MENU : MENU.filter((m) => m.category === state.category);
-      grid.innerHTML = items.map((item) => `
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-col justify-between gap-3 ${allowed ? "" : "opacity-65"}">
-          <div>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-medium">${item.category}</span>
-            <h3 class="font-bold text-sm mt-2">${item.name}</h3>
-            <p class="text-xs text-stone-500 mt-0.5">${item.desc}</p>
-          </div>
-          <div class="flex items-center justify-between pt-2 border-t border-stone-100">
-            <span class="font-bold text-sm text-amber-950">${formatIDR(item.price)}</span>
-            <button
-              onclick="addToCart(${item.id})"
-              ${allowed ? "" : "disabled"}
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold ${allowed ? "bg-amber-900 hover:bg-amber-800 text-white" : "bg-stone-200 text-stone-400 cursor-not-allowed"}">
-              ${allowed ? "+ Tambah" : "Terkunci"}
-            </button>
-          </div>
-        </div>
-      `).join("");
-    }
+      const [searchQuery, setSearchQuery] = useState("");
+      const [draftText, setDraftText] = useState("");
+      const [toastMsg, setToastMsg] = useState("");
+      const [nowTick, setNowTick] = useState(Date.now());
+      const [soundEnabled, setSoundEnabled] = useState(true);
+      const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+      const messagesEndRef = useRef(null);
 
-    function setOrderType(type) {
-      state.orderType = type;
-      const isDineIn = type === "Dine-In";
-      document.getElementById("btn-dinein").className = isDineIn
-        ? "py-2 rounded-lg text-xs font-semibold bg-white text-stone-900 shadow-sm"
-        : "py-2 rounded-lg text-xs font-semibold text-stone-600";
-      document.getElementById("btn-takeaway").className = !isDineIn
-        ? "py-2 rounded-lg text-xs font-semibold bg-white text-stone-900 shadow-sm"
-        : "py-2 rounded-lg text-xs font-semibold text-stone-600";
-      document.getElementById("table-number").disabled = !isDineIn;
-      document.getElementById("table-number").parentElement.style.opacity = isDineIn ? "1" : "0.45";
-      saveState();
-    }
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      }, [sessions]);
 
-    function addToCart(id) {
-      const feedback = document.getElementById("pos-feedback");
-      if (!canOrder()) {
-        feedback.textContent = "Buka kasir, isi penanggung jawab, dan modal awal terlebih dahulu.";
-        return;
-      }
-      feedback.textContent = "";
-      const product = MENU.find((m) => m.id === id);
-      const existing = state.cart.find((c) => c.id === id);
-      if (existing) existing.qty += 1;
-      else state.cart.push({ ...product, qty: 1 });
-      renderCart();
-      saveState();
-    }
+      const totalUnread = useMemo(
+        () => sessions.reduce((acc, s) => acc + (s.unreadCount || 0), 0),
+        [sessions]
+      );
 
-    function updateQty(id, delta) {
-      const item = state.cart.find((c) => c.id === id);
-      if (!item) return;
-      item.qty += delta;
-      if (item.qty <= 0) state.cart = state.cart.filter((c) => c.id !== id);
-      renderCart();
-      saveState();
-    }
+      useEffect(() => {
+        document.title = totalUnread > 0 ? `(${totalUnread}) CS Toko` : "CS Toko - Layanan Pelanggan";
+      }, [totalUnread]);
 
-    function clearCart() {
-      state.cart = [];
-      renderCart();
-      saveState();
-    }
+      // Timer 1 detik & auto-end jika 3 menit tanpa aktivitas
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const currentNow = Date.now();
+          setNowTick(currentNow);
 
-    function getTotals() {
-      const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-      const tax = Math.round(subtotal * 0.1);
-      const total = subtotal + tax;
-      return { subtotal, tax, total };
-    }
+          setSessions((prev) => {
+            let changed = false;
+            const next = prev.map((sess) => {
+              if (sess.status === "active") {
+                const elapsedSec = Math.floor((currentNow - sess.lastActivityAt) / 1000);
+                if (elapsedSec >= IDLE_LIMIT_SECONDS) {
+                  changed = true;
+                  setToastMsg(`Sesi ${sess.id} (${sess.customerName}) berakhir otomatis setelah 3 menit tanpa percakapan.`);
+                  return {
+                    ...sess,
+                    status: "ended",
+                    messages: [
+                      ...sess.messages,
+                      {
+                        id: "sys-" + currentNow + "-" + sess.id,
+                        sender: "system",
+                        text: "Percakapan berakhir otomatis karena tidak ada aktivitas selama 3 menit.",
+                        time: formatTimeNow()
+                      }
+                    ]
+                  };
+                }
+              }
+              return sess;
+            });
+            return changed ? next : prev;
+          });
+        }, 1000);
 
-    function renderCart() {
-      const container = document.getElementById("cart-items");
-      if (state.cart.length === 0) {
-        container.innerHTML = `<p class="text-xs text-stone-400 py-6 text-center">Belum ada item dipilih.</p>`;
-      } else {
-        container.innerHTML = state.cart.map((item) => `
-          <div class="py-2.5 flex items-center justify-between gap-2">
-            <div>
-              <div class="text-xs font-semibold text-stone-800">${item.name}</div>
-              <div class="text-[11px] text-stone-500">${formatIDR(item.price)} x ${item.qty}</div>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <button onclick="updateQty(${item.id}, -1)" class="w-6 h-6 rounded bg-stone-100 hover:bg-stone-200 text-xs font-bold">-</button>
-              <span class="text-xs font-semibold w-5 text-center">${item.qty}</span>
-              <button onclick="updateQty(${item.id}, 1)" class="w-6 h-6 rounded bg-stone-100 hover:bg-stone-200 text-xs font-bold">+</button>
-            </div>
-          </div>
-        `).join("");
-      }
-      const { subtotal, tax, total } = getTotals();
-      document.getElementById("summary-subtotal").textContent = formatIDR(subtotal);
-      document.getElementById("summary-tax").textContent = formatIDR(tax);
-      document.getElementById("summary-total").textContent = formatIDR(total);
-      calculateChange();
-    }
+        return () => clearInterval(interval);
+      }, []);
 
-    function setPaymentMethod(method) {
-      state.paymentMethod = method;
-      document.querySelectorAll(".pay-btn").forEach((btn) => {
-        const active = btn.dataset.pay === method;
-        btn.className = active
-          ? "pay-btn py-2 rounded-xl text-xs font-semibold border border-amber-800 bg-amber-900 text-white"
-          : "pay-btn py-2 rounded-xl text-xs font-semibold border border-stone-300 bg-white text-stone-700";
-      });
-      document.getElementById("cash-payment-box").classList.toggle("hidden", method !== "Tunai");
-      calculateChange();
-      saveState();
-    }
+      const activeSession = useMemo(
+        () => sessions.find((s) => s.id === activeId) || null,
+        [sessions, activeId]
+      );
 
-    function calculateChange() {
-      const { total } = getTotals();
-      const received = Number(document.getElementById("cash-received").value || 0);
-      document.getElementById("cash-change").textContent = formatIDR(Math.max(0, received - total));
-    }
+      useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, [activeSession?.messages?.length, activeId]);
 
-    function processPayment() {
-      const feedback = document.getElementById("pos-feedback");
-      feedback.className = "text-xs text-center text-red-600 min-h-[16px]";
-      feedback.textContent = "";
-
-      if (!canOrder()) {
-        feedback.textContent = "Kasir belum dibuka atau modal awal belum diisi.";
-        return;
-      }
-      if (state.cart.length === 0) {
-        feedback.textContent = "Pilih minimal satu menu kopi terlebih dahulu.";
-        return;
-      }
-
-      const tableNum = document.getElementById("table-number").value.trim();
-      const custName = document.getElementById("customer-name").value.trim() || "Pelanggan Umum";
-      if (state.orderType === "Dine-In" && !tableNum) {
-        feedback.textContent = "Masukkan nomor meja untuk pesanan Minum di Tempat.";
-        return;
-      }
-
-      const { subtotal, tax, total } = getTotals();
-      const received = state.paymentMethod === "Tunai"
-        ? Number(document.getElementById("cash-received").value || 0)
-        : total;
-
-      if (state.paymentMethod === "Tunai" && received < total) {
-        feedback.textContent = "Uang diterima kurang dari total pembayaran.";
-        return;
-      }
-
-      const now = new Date();
-      const invNumber = "INV-" + now.getFullYear().toString().slice(-2) +
-        String(now.getMonth() + 1).padStart(2, "0") +
-        String(now.getDate()).padStart(2, "0") + "-" +
-        String(Math.floor(1000 + Math.random() * 9000));
-
-      const tx = {
-        invNumber,
-        shiftCode: state.shift.shiftCode,
-        time: now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-        date: now.toLocaleDateString("id-ID"),
-        cashier: state.shift.cashier,
-        orderType: state.orderType,
-        tableNumber: state.orderType === "Dine-In" ? tableNum : "-",
-        customerName: custName,
-        items: state.cart.map((i) => ({ ...i })),
-        subtotal,
-        tax,
-        total,
-        paymentMethod: state.paymentMethod,
-        received,
-        change: Math.max(0, received - total)
+      const handleSelectSession = (id) => {
+        setActiveId(id);
+        setMobileDrawerOpen(false);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, unreadCount: 0 } : s))
+        );
       };
 
-      state.shift.transactions.push(tx);
-      state.lastInvoice = tx;
-      renderInvoice(tx);
-      clearCart();
-      document.getElementById("cash-received").value = "";
-      document.getElementById("table-number").value = "";
-      document.getElementById("customer-name").value = "";
-      calculateChange();
-      saveState();
+      const handleSendMessage = (e) => {
+        e.preventDefault();
+        const trimmed = draftText.trim();
+        if (!trimmed || !activeSession || activeSession.status !== "active") return;
 
-      feedback.className = "text-xs text-center text-emerald-700 font-medium min-h-[16px]";
-      feedback.textContent = `Pembayaran ${invNumber} berhasil diproses.`;
-    }
+        const now = Date.now();
+        const newMsg = {
+          id: "msg-" + now,
+          sender: "agent",
+          text: trimmed,
+          time: formatTimeNow()
+        };
 
-    function renderInvoice(tx) {
-      if (!tx) {
-        document.getElementById("invoice-content").innerHTML =
-          `<p class="text-stone-400 italic">Invoice akan muncul setelah transaksi pembayaran berhasil.</p>`;
-        return;
-      }
-      const serviceLabel = tx.orderType === "Dine-In" ? `Minum di Tempat (Meja ${tx.tableNumber})` : "Take Away";
-      document.getElementById("invoice-content").innerHTML = `
-        <div class="flex justify-between">
-          <span>No. Invoice: <strong>${tx.invNumber}</strong></span>
-          <span>${tx.date} • ${tx.time}</span>
-        </div>
-        <div class="flex justify-between">
-          <span>PJ Kasir: <strong>${tx.cashier}</strong></span>
-          <span>Pelanggan: <strong>${tx.customerName}</strong></span>
-        </div>
-        <div><span>Layanan: <strong>${serviceLabel}</strong></span></div>
-        <div class="border-t border-dashed border-stone-300 pt-2 mt-2 space-y-1.5">
-          ${tx.items.map((item) => `
-            <div class="flex justify-between">
-              <span>${item.qty}x ${item.name}</span>
-              <span>${formatIDR(item.price * item.qty)}</span>
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSession.id
+              ? { ...s, messages: [...s.messages, newMsg], lastActivityAt: now }
+              : s
+          )
+        );
+        setDraftText("");
+      };
+
+      const handleSimulateCustomerMsg = () => {
+        if (!activeSession || activeSession.status !== "active") return;
+        const sampleReplies = [
+          "Min, apakah ada promo ongkir hari ini?",
+          "Oke siap, terima kasih banyak atas bantuannya!",
+          "Boleh minta link produk warna hitamnya?",
+          "Pengirimannya estimasi berapa hari ya?"
+        ];
+        const text = sampleReplies[Math.floor(Math.random() * sampleReplies.length)];
+        const now = Date.now();
+        const isCurrentView = activeSession.id === activeId && !mobileDrawerOpen;
+
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSession.id
+              ? {
+                  ...s,
+                  messages: [...s.messages, { id: "c-" + now, sender: "customer", text, time: formatTimeNow() }],
+                  lastActivityAt: now,
+                  unreadCount: isCurrentView ? 0 : (s.unreadCount || 0) + 1
+                }
+              : s
+          )
+        );
+
+        setToastMsg(`Pesan baru dari ${activeSession.customerName}: "${text}"`);
+        if (soundEnabled) playNotifSound();
+      };
+
+      const handleEndSession = () => {
+        if (!activeSession || activeSession.status !== "active") return;
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSession.id
+              ? {
+                  ...s,
+                  status: "ended",
+                  messages: [
+                    ...s.messages,
+                    {
+                      id: "end-" + Date.now(),
+                      sender: "system",
+                      text: "Percakapan diakhiri oleh agen customer service.",
+                      time: formatTimeNow()
+                    }
+                  ]
+                }
+              : s
+          )
+        );
+      };
+
+      const handleNewSession = () => {
+        const name = prompt("Masukkan nama pelanggan:");
+        if (!name || !name.trim()) return;
+        const now = Date.now();
+        const newId = "CS-" + String(Math.floor(1000 + Math.random() * 9000));
+        const newSess = {
+          id: newId,
+          customerName: name.trim(),
+          status: "active",
+          lastActivityAt: now,
+          unreadCount: 0,
+          messages: [
+            {
+              id: "init-" + now,
+              sender: "customer",
+              text: "Halo admin, saya ingin bertanya tentang produk di toko.",
+              time: formatTimeNow()
+            }
+          ]
+        };
+        setSessions((prev) => [newSess, ...prev]);
+        setActiveId(newId);
+        setMobileDrawerOpen(false);
+        setToastMsg(`Percakapan baru dimulai bersama ${newSess.customerName} (${newId}).`);
+        if (soundEnabled) playNotifSound();
+      };
+
+      // Reset semua histori dan data tersimpan
+      const handleResetAll = () => {
+        const confirmed = confirm(
+          "Reset All akan menghapus seluruh histori percakapan dan notifikasi yang tersimpan. Lanjutkan?"
+        );
+        if (!confirmed) return;
+
+        localStorage.removeItem(STORAGE_KEY);
+        setSessions([]);
+        setActiveId(null);
+        setSearchQuery("");
+        setDraftText("");
+        setMobileDrawerOpen(false);
+        setToastMsg("Semua histori percakapan telah di-reset.");
+      };
+
+      const filteredSessions = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return sessions;
+        return sessions.filter((s) => {
+          const matchMeta =
+            s.customerName.toLowerCase().includes(q) ||
+            s.id.toLowerCase().includes(q) ||
+            s.status.toLowerCase().includes(q);
+          const matchMsg = s.messages.some((m) => m.text.toLowerCase().includes(q));
+          return matchMeta || matchMsg;
+        });
+      }, [sessions, searchQuery]);
+
+      const remainingSeconds =
+        activeSession && activeSession.status === "active"
+          ? Math.max(0, IDLE_LIMIT_SECONDS - Math.floor((nowTick - activeSession.lastActivityAt) / 1000))
+          : 0;
+
+      return (
+        <>
+          <header className="topbar">
+            <div className="topbar-left">
+              <button
+                type="button"
+                className="btn-mobile-drawer"
+                onClick={() => setMobileDrawerOpen((v) => !v)}
+              >
+                Histori ({sessions.length})
+              </button>
+              <strong>CS Toko</strong>
+              <span className="badge-notif">Belum dibaca: {totalUnread}</span>
             </div>
-          `).join("")}
-        </div>
-        <div class="border-t border-dashed border-stone-300 pt-2 mt-2 space-y-1">
-          <div class="flex justify-between"><span>Subtotal</span><span>${formatIDR(tx.subtotal)}</span></div>
-          <div class="flex justify-between"><span>Pajak (10%)</span><span>${formatIDR(tx.tax)}</span></div>
-          <div class="flex justify-between font-bold text-sm text-stone-900 pt-1">
-            <span>TOTAL</span><span>${formatIDR(tx.total)}</span>
-          </div>
-          <div class="flex justify-between"><span>Metode</span><span>${tx.paymentMethod}</span></div>
-          ${tx.paymentMethod === "Tunai" ? `
-            <div class="flex justify-between"><span>Tunai Diterima</span><span>${formatIDR(tx.received)}</span></div>
-            <div class="flex justify-between"><span>Kembalian</span><span>${formatIDR(tx.change)}</span></div>
-          ` : ""}
-        </div>
-        <p class="text-center text-[11px] text-stone-400 pt-3">Terima kasih telah berkunjung ke KopiKasir.</p>
-      `;
+
+            <div className="topbar-actions">
+              <button
+                type="button"
+                className="btn-top"
+                onClick={() => setSoundEnabled((v) => !v)}
+              >
+                {soundEnabled ? "Suara: ON" : "Suara: OFF"}
+              </button>
+              <button
+                type="button"
+                className="btn-reset-all"
+                onClick={handleResetAll}
+              >
+                Reset All
+              </button>
+            </div>
+          </header>
+
+          {toastMsg && (
+            <div className="toast-banner">
+              <span><strong>Notifikasi:</strong> {toastMsg}</span>
+              <button
+                type="button"
+                onClick={() => setToastMsg("")}
+                style={{ background: "none", border: "none", fontWeight: 700, cursor: "pointer", color: "#92400e", flexShrink: 0 }}
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+
+          <div
+            className={`drawer-backdrop ${mobileDrawerOpen ? "open" : ""}`}
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+
+          <main className="app-container">
+            <aside className={`sidebar ${mobileDrawerOpen ? "open" : ""}`}>
+              <div className="sidebar-header">
+                <button type="button" className="btn-new" onClick={handleNewSession}>
+                  + Percakapan Baru
+                </button>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Cari nama, ID, atau isi chat..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="history-list">
+                {filteredSessions.length === 0 ? (
+                  <div style={{ padding: 20, fontSize: 13, color: "#64748b", textAlign: "center" }}>
+                    {sessions.length === 0
+                      ? "Belum ada histori. Klik '+ Percakapan Baru' untuk memulai."
+                      : "Histori percakapan tidak ditemukan."}
+                  </div>
+                ) : (
+                  filteredSessions.map((sess) => {
+                    const lastMsg = sess.messages[sess.messages.length - 1];
+                    return (
+                      <div
+                        key={sess.id}
+                        className={`history-item ${sess.id === activeId ? "active" : ""}`}
+                        onClick={() => handleSelectSession(sess.id)}
+                      >
+                        <div className="item-top">
+                          <span>
+                            {sess.customerName}{" "}
+                            {sess.unreadCount > 0 && (
+                              <span className="badge-notif">{sess.unreadCount}</span>
+                            )}
+                          </span>
+                          <span className={`status-pill ${sess.status === "active" ? "status-active" : "status-ended"}`}>
+                            {sess.status === "active" ? "Aktif" : "Selesai"}
+                          </span>
+                        </div>
+                        <div className="item-preview">
+                          {lastMsg ? lastMsg.text : "Belum ada pesan"}
+                        </div>
+                        <div className="item-meta">
+                          <span>{sess.id}</span>
+                          <span>{lastMsg?.time || "-"}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </aside>
+
+            <section className="chat-panel">
+              {activeSession ? (
+                <>
+                  <div className="chat-header">
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                        {activeSession.customerName}{" "}
+                        <span style={{ fontWeight: 400, color: "#64748b", fontSize: 12 }}>({activeSession.id})</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>
+                        Status: {activeSession.status === "active" ? "Sedang berlangsung" : "Percakapan berakhir"}
+                      </div>
+                    </div>
+
+                    <div className="chat-controls">
+                      {activeSession.status === "active" && (
+                        <>
+                          <div className={`timer-box ${remainingSeconds <= 30 ? "warning" : ""}`}>
+                            Auto-end: {formatCountdown(remainingSeconds)}
+                          </div>
+                          <button type="button" className="btn-sim" onClick={handleSimulateCustomerMsg}>
+                            Simulasi Chat
+                          </button>
+                          <button type="button" className="btn-end" onClick={handleEndSession}>
+                            Akhiri Sesi
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="messages-box">
+                    {activeSession.messages.map((msg) =>
+                      msg.sender === "system" ? (
+                        <div key={msg.id} className="msg-system">
+                          {msg.text} ({msg.time})
+                        </div>
+                      ) : (
+                        <div
+                          key={msg.id}
+                          className={`msg ${msg.sender === "agent" ? "msg-agent" : "msg-customer"}`}
+                        >
+                          <div>{msg.text}</div>
+                          <div className="msg-time">{msg.time}</div>
+                        </div>
+                      )
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  <form className="chat-input-area" onSubmit={handleSendMessage}>
+                    <input
+                      type="text"
+                      className="chat-input"
+                      placeholder={
+                        activeSession.status === "active"
+                          ? "Tulis balasan untuk pelanggan..."
+                          : "Percakapan telah berakhir. Mulai percakapan baru."
+                      }
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      disabled={activeSession.status !== "active"}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-send"
+                      disabled={activeSession.status !== "active" || !draftText.trim()}
+                    >
+                      Kirim
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div style={{ margin: "auto", padding: 20, color: "#64748b", fontSize: 14, textAlign: "center" }}>
+                  Belum ada sesi dipilih. Buka menu <strong>Histori</strong> atau klik <strong>+ Percakapan Baru</strong>.
+                </div>
+              )}
+            </section>
+          </main>
+        </>
+      );
     }
 
-    function resetAll() {
-      if (!confirm("Reset seluruh data kasir, histori rekap, transaksi, keranjang, dan invoice?")) return;
-      localStorage.removeItem(STORAGE_KEY);
-      state = createInitialState();
-      renderLockStatus();
-      filterCategory("Semua");
-      setOrderType("Dine-In");
-      setPaymentMethod("Tunai");
-      renderCart();
-      renderInvoice(null);
-      saveState();
-    }
-
-    setOrderType(state.orderType || "Dine-In");
-    setPaymentMethod(state.paymentMethod || "Tunai");
-    filterCategory(state.category || "Semua");
-    renderLockStatus();
-    renderCart();
-    if (state.lastInvoice) renderInvoice(state.lastInvoice);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
